@@ -951,6 +951,17 @@ public class BufferUtil
         return new String(array, buffer.arrayOffset() + position, length, charset);
     }
 
+    public static String toString(ReadableBuffer buffer, long position, int length, Charset charset)
+    {
+        if (buffer == null)
+            return null;
+        byte[] to = new byte[Math.toIntExact(buffer.remaining())];
+        ReadableBuffer slice = buffer.slice(position, length);
+        slice.get(to);
+        slice.release();
+        return new String(to, charset);
+    }
+
     /**
      * Convert the buffer to an UTF-8 String
      *
@@ -958,6 +969,11 @@ public class BufferUtil
      * @return The buffer as a string.
      */
     public static String toUTF8String(ByteBuffer buffer)
+    {
+        return toString(buffer, StandardCharsets.UTF_8);
+    }
+
+    public static String toUTF8String(ReadableBuffer buffer)
     {
         return toString(buffer, StandardCharsets.UTF_8);
     }
@@ -1100,6 +1116,11 @@ public class BufferUtil
 
     public static void putHexInt(ByteBuffer buffer, int n)
     {
+        putHexInt(WritableBuffer.wrap(buffer), n);
+    }
+
+    public static void putHexInt(WritableBuffer buffer, int n)
+    {
         if (n < 0)
         {
             buffer.put((byte)'-');
@@ -1187,6 +1208,11 @@ public class BufferUtil
 
     public static void putDecLong(ByteBuffer buffer, long n)
     {
+        putDecLong(WritableBuffer.wrap(buffer), n);
+    }
+
+    public static void putDecLong(WritableBuffer buffer, long n)
+    {
         if (n < 0)
         {
             buffer.put((byte)'-');
@@ -1244,11 +1270,21 @@ public class BufferUtil
         return toBuffer(s, StandardCharsets.ISO_8859_1);
     }
 
+    public static ReadableBuffer toReadableBuffer(String s)
+    {
+        return ReadableBuffer.wrap(toBuffer(s, StandardCharsets.ISO_8859_1));
+    }
+
     public static ByteBuffer toBuffer(String s, Charset charset)
     {
         if (s == null)
             return EMPTY_BUFFER;
         return toBuffer(s.getBytes(charset));
+    }
+
+    public static ReadableBuffer toReadableBuffer(String s, Charset charset)
+    {
+        return ReadableBuffer.wrap(toBuffer(s, charset));
     }
 
     /**
@@ -1633,6 +1669,12 @@ public class BufferUtil
     };
 
     public static void putCRLF(ByteBuffer buffer)
+    {
+        buffer.put((byte)13);
+        buffer.put((byte)10);
+    }
+
+    public static void putCRLF(WritableBuffer buffer)
     {
         buffer.put((byte)13);
         buffer.put((byte)10);
