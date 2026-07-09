@@ -210,6 +210,24 @@ public class AccumulatingReadBuffer implements ReadableBuffer
     }
 
     @Override
+    public int getShort(long index)
+    {
+        for (ReadableBuffer readableBuffer : readableBuffers)
+        {
+            long limit = readableBuffer.capacity();
+            if (limit > index)
+            {
+                if (readableBuffer.remaining() >= 2L)
+                    return readableBuffer.getShort();
+                else
+                    return fragmentedGet(readableBuffer, 2).getShort();
+            }
+            index -= limit;
+        }
+        throw new BufferUnderflowException();
+    }
+
+    @Override
     public int getInt()
     {
         ReadableBuffer currentRb = currentReadableBuffer();
@@ -225,6 +243,24 @@ public class AccumulatingReadBuffer implements ReadableBuffer
     }
 
     @Override
+    public int getInt(long index)
+    {
+        for (ReadableBuffer readableBuffer : readableBuffers)
+        {
+            long limit = readableBuffer.capacity();
+            if (limit > index)
+            {
+                if (readableBuffer.remaining() >= 4L)
+                    return readableBuffer.getInt();
+                else
+                    return fragmentedGet(readableBuffer, 4).getInt();
+            }
+            index -= limit;
+        }
+        throw new BufferUnderflowException();
+    }
+
+    @Override
     public long getLong()
     {
         ReadableBuffer currentRb = currentReadableBuffer();
@@ -237,6 +273,24 @@ public class AccumulatingReadBuffer implements ReadableBuffer
         long aLong = fragmentedGet(currentRb, 8).getLong();
         consumeOriginalBuffers(8);
         return aLong;
+    }
+
+    @Override
+    public long getLong(long index)
+    {
+        for (ReadableBuffer readableBuffer : readableBuffers)
+        {
+            long limit = readableBuffer.capacity();
+            if (limit > index)
+            {
+                if (readableBuffer.remaining() >= 8L)
+                    return readableBuffer.getLong();
+                else
+                    return fragmentedGet(readableBuffer, 8).getLong();
+            }
+            index -= limit;
+        }
+        throw new BufferUnderflowException();
     }
 
     @Override

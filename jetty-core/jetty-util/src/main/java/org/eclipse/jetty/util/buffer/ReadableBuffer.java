@@ -139,6 +139,8 @@ public interface ReadableBuffer extends Retainable
      */
     short getShort();
 
+    int getShort(long index);
+
     default int getShortAsInt()
     {
         return getShort() & 0xFFFF;
@@ -150,11 +152,15 @@ public interface ReadableBuffer extends Retainable
      */
     int getInt();
 
+    int getInt(long index);
+
     /**
      * Reads a long at the current position.
      * @throws BufferUnderflowException – If the buffer's {@link #remaining()} is less than eight.
      */
     long getLong();
+
+    long getLong(long index);
 
     /**
      * Reads a byte array at the current position.

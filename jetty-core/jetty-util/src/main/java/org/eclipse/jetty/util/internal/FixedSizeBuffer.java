@@ -93,6 +93,14 @@ public class FixedSizeBuffer implements WritableBuffer, ReadableBuffer
     }
 
     @Override
+    public int getShort(long index)
+    {
+        if (flushPosition != -1)
+            throw new IllegalStateException("Cannot read from buffer in write mode");
+        return byteBuffer.getShort(Math.toIntExact(index));
+    }
+
+    @Override
     public int getInt()
     {
         if (flushPosition != -1)
@@ -101,11 +109,27 @@ public class FixedSizeBuffer implements WritableBuffer, ReadableBuffer
     }
 
     @Override
+    public int getInt(long index)
+    {
+        if (flushPosition != -1)
+            throw new IllegalStateException("Cannot read from buffer in write mode");
+        return byteBuffer.getInt(Math.toIntExact(index));
+    }
+
+    @Override
     public long getLong()
     {
         if (flushPosition != -1)
             throw new IllegalStateException("Cannot read from buffer in write mode");
         return byteBuffer.getLong();
+    }
+
+    @Override
+    public long getLong(long index)
+    {
+        if (flushPosition != -1)
+            throw new IllegalStateException("Cannot read from buffer in write mode");
+        return byteBuffer.getLong(Math.toIntExact(index));
     }
 
     @Override
