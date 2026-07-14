@@ -955,7 +955,7 @@ public class BufferUtil
     {
         if (buffer == null)
             return null;
-        byte[] to = new byte[Math.toIntExact(buffer.remaining())];
+        byte[] to = new byte[length];
         ReadableBuffer slice = buffer.slice(position, length);
         slice.get(to);
         slice.release();
