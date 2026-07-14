@@ -1147,7 +1147,6 @@ public class HttpConnection extends AbstractMetaDataConnection implements Runnab
             if (LOG.isDebugEnabled())
                 LOG.debug("content {}/{} for {}", buffer, _requestBuffer, HttpConnection.this);
 
-            _requestBuffer.retain();
             stream._chunk = Content.Chunk.asChunk(buffer, false, _requestBuffer);
             return true;
         }
