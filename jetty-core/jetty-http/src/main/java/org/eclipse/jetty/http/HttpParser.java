@@ -950,7 +950,7 @@ public class HttpParser
                                 _requestHandler.startRequest(_methodString, _uri.toCompleteString(), HttpVersion.HTTP_0_9);
                                 setState(State.CONTENT);
                                 _endOfContent = EndOfContent.NO_CONTENT;
-                                buffer.position(buffer.capacity());
+                                buffer.position(buffer.position() + buffer.remaining());
                                 handle = handleHeaderContentMessage();
                             }
                             else
@@ -1004,7 +1004,7 @@ public class HttpParser
                                 _requestHandler.startRequest(_methodString, _uri.toCompleteString(), HttpVersion.HTTP_0_9);
                                 setState(State.CONTENT);
                                 _endOfContent = EndOfContent.NO_CONTENT;
-                                buffer.position(buffer.capacity());
+                                buffer.position(buffer.position() + buffer.remaining());
                                 handle = handleHeaderContentMessage();
                             }
                             break;
@@ -1760,7 +1760,7 @@ public class HttpParser
             }
             else if (isTerminated())
             {
-                buffer.position(buffer.capacity());
+                buffer.position(buffer.position() + buffer.remaining());
             }
 
             // Handle EOF
