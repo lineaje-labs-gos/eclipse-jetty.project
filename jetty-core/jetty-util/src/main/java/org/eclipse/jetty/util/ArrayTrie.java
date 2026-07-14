@@ -464,7 +464,8 @@ class ArrayTrie<V> extends AbstractTrie<V>
         long pos = b.position() + offset;
         for (int i = 0; i < len; i++)
         {
-            if (pos >= b.remaining())
+            long limit = b.position() + b.remaining();
+            if (pos >= limit)
                 return null;
 
             byte c = b.get(pos++);
