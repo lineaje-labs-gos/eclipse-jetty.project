@@ -29,6 +29,7 @@ import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Response;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.util.Callback;
+import org.eclipse.jetty.util.buffer.ReadableBuffer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -114,7 +115,7 @@ public class MinimumDataRateHandlerTest
 
             ByteBuffer byteBuffer = endPoint.waitForResponse(false, 5, TimeUnit.SECONDS);
             assertNotNull(byteBuffer);
-            HttpTester.Response response = HttpTester.parseResponse(byteBuffer);
+            HttpTester.Response response = HttpTester.parseResponse(ReadableBuffer.wrap(byteBuffer));
             assertThat(response.getStatus(), is(HttpStatus.INTERNAL_SERVER_ERROR_500));
             assertThat(response.getContent(), containsString("read rate is too low"));
         }
@@ -184,7 +185,7 @@ public class MinimumDataRateHandlerTest
 
             ByteBuffer byteBuffer = endPoint.waitForResponse(false, 5, TimeUnit.SECONDS);
             assertNotNull(byteBuffer);
-            HttpTester.Response response = HttpTester.parseResponse(byteBuffer);
+            HttpTester.Response response = HttpTester.parseResponse(ReadableBuffer.wrap(byteBuffer));
             assertThat(response.getStatus(), is(HttpStatus.OK_200));
         }
     }
@@ -269,7 +270,7 @@ public class MinimumDataRateHandlerTest
             String response = StandardCharsets.UTF_8.decode(byteBuffer.slice()).toString();
             assertThat(response, containsString("HTTP/1.1 200 OK"));
             // Cannot parse a full response, since it has been interrupted.
-            assertNull(HttpTester.parseResponse(byteBuffer));
+            assertNull(HttpTester.parseResponse(ReadableBuffer.wrap(byteBuffer)));
             assertThat(writeFailureRef.get().getMessage(), containsString("write rate is too low"));
         }
     }
@@ -309,7 +310,7 @@ public class MinimumDataRateHandlerTest
         {
             ByteBuffer byteBuffer = endPoint.waitForResponse(false, 5, TimeUnit.SECONDS);
             assertNotNull(byteBuffer);
-            HttpTester.Response response = HttpTester.parseResponse(byteBuffer);
+            HttpTester.Response response = HttpTester.parseResponse(ReadableBuffer.wrap(byteBuffer));
             assertThat(response.getStatus(), is(HttpStatus.OK_200));
         }
     }
@@ -379,7 +380,7 @@ public class MinimumDataRateHandlerTest
             String response = StandardCharsets.UTF_8.decode(byteBuffer.slice()).toString();
             assertThat(response, containsString("HTTP/1.1 200 OK"));
             // Cannot parse a full response, since it has been interrupted.
-            assertNull(HttpTester.parseResponse(byteBuffer));
+            assertNull(HttpTester.parseResponse(ReadableBuffer.wrap(byteBuffer)));
             assertThat(writeFailureRef.get().getMessage(), containsString("write rate is too low"));
         }
     }

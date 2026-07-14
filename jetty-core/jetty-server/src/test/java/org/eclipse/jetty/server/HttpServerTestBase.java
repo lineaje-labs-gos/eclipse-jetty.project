@@ -56,6 +56,7 @@ import org.eclipse.jetty.util.FutureCallback;
 import org.eclipse.jetty.util.IO;
 import org.eclipse.jetty.util.NanoTime;
 import org.eclipse.jetty.util.StringUtil;
+import org.eclipse.jetty.util.buffer.ReadableBuffer;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -1893,11 +1894,11 @@ public abstract class HttpServerTestBase extends HttpServerTestFixture
             // Read the two pipelined responses until EOF
             ByteBuffer responses = ByteBuffer.wrap(IO.readBytes(client.getInputStream()));
 
-            HttpTester.Response response = HttpTester.parseResponse(responses);
+            HttpTester.Response response = HttpTester.parseResponse(ReadableBuffer.wrap(responses));
             assertThat(response.getStatus(), is(200));
             assertThat(response.getContent(), containsString("Read " + content.length));
 
-            response = HttpTester.parseResponse(responses);
+            response = HttpTester.parseResponse(ReadableBuffer.wrap(responses));
             assertThat(response.getStatus(), is(200));
             assertThat(response.getContent(), containsString("Read " + content.length));
         }

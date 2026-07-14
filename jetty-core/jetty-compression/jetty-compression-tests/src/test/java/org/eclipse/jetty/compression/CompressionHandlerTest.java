@@ -56,6 +56,7 @@ import org.eclipse.jetty.util.BufferUtil;
 import org.eclipse.jetty.util.Callback;
 import org.eclipse.jetty.util.IO;
 import org.eclipse.jetty.util.StringUtil;
+import org.eclipse.jetty.util.buffer.ReadableBuffer;
 import org.eclipse.jetty.util.component.LifeCycle;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -1172,7 +1173,7 @@ public class CompressionHandlerTest extends AbstractCompressionTest
                 latch.countDown();
                 // collect the rest of the body
                 IO.copy(in, baos);
-                response = HttpTester.parseResponse(ByteBuffer.wrap(baos.toByteArray()));
+                response = HttpTester.parseResponse(ReadableBuffer.wrap(ByteBuffer.wrap(baos.toByteArray())));
             }
 
             byte[] rawResponseBodyBytes = response.getContentBytes();

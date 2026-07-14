@@ -37,6 +37,7 @@ import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.server.handler.DumpHandler;
 import org.eclipse.jetty.util.Callback;
 import org.eclipse.jetty.util.Fields;
+import org.eclipse.jetty.util.buffer.ReadableBuffer;
 import org.eclipse.jetty.util.component.LifeCycle;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -499,7 +500,7 @@ public class RequestTest
 
         LocalConnector.LocalEndPoint localEndPoint = connector.executeRequest(rawRequest);
         ByteBuffer rawResponse = localEndPoint.waitForResponse(true, 2, TimeUnit.SECONDS);
-        HttpTester.Response response = HttpTester.parseHeadResponse(rawResponse);
+        HttpTester.Response response = HttpTester.parseHeadResponse(ReadableBuffer.wrap(rawResponse));
         assertNotNull(response);
         assertThat(response.getStatus(), is(HttpStatus.OK_200));
     }

@@ -31,6 +31,7 @@ import org.eclipse.jetty.http.HttpTester;
 import org.eclipse.jetty.io.Content;
 import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.util.Callback;
+import org.eclipse.jetty.util.buffer.ReadableBuffer;
 import org.eclipse.jetty.util.component.LifeCycle;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -314,7 +315,7 @@ public class RequestListenersTest
             assertNotNull(callback);
             Content.Sink.write(responseRef.get(), true, "OK", callback);
 
-            HttpTester.Response response = HttpTester.parseResponse(endPoint.waitForResponse(false, 3 * idleTimeout, TimeUnit.MILLISECONDS));
+            HttpTester.Response response = HttpTester.parseResponse(ReadableBuffer.wrap(endPoint.waitForResponse(false, 3 * idleTimeout, TimeUnit.MILLISECONDS)));
 
             assertThat(response.getStatus(), is(HttpStatus.OK_200));
             assertThat(response.getContent(), is("OK"));
@@ -419,7 +420,7 @@ public class RequestListenersTest
 
             callback.succeeded();
 
-            HttpTester.Response response = HttpTester.parseResponse(endPoint.waitForResponse(false, idleTimeout, TimeUnit.MILLISECONDS));
+            HttpTester.Response response = HttpTester.parseResponse(ReadableBuffer.wrap(endPoint.waitForResponse(false, idleTimeout, TimeUnit.MILLISECONDS)));
 
             assertThat(response.getStatus(), is(HttpStatus.OK_200));
         }
