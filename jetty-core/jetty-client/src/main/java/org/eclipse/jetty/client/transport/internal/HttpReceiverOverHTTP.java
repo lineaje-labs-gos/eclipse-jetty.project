@@ -483,8 +483,6 @@ public class HttpReceiverOverHTTP extends HttpReceiver implements HttpParser.Res
         if (getHttpConnection().isFillInterested())
             throw new IllegalStateException("Fill interested while parsing for content");
 
-        // Retain the chunk because it is stored for later use.
-        networkBuffer.retain();
         chunk = Content.Chunk.asChunk(buffer, false, networkBuffer);
         state = State.CONTENT;
         return true;
