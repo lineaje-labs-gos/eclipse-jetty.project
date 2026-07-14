@@ -25,6 +25,8 @@ import java.nio.charset.StandardCharsets;
 import org.eclipse.jetty.util.BufferUtil;
 import org.eclipse.jetty.util.IO;
 import org.eclipse.jetty.util.StringUtil;
+import org.eclipse.jetty.util.buffer.ReadableBuffer;
+import org.eclipse.jetty.util.buffer.WritableBuffer;
 
 /**
  * <p>HTTP Testing helper class.</p>
@@ -216,7 +218,7 @@ public class HttpTester
     {
         Response r = new Response();
         HttpParser parser = new HttpParser(r);
-        parser.parseNext(BufferUtil.toBuffer(response));
+        parser.parseNext(BufferUtil.toReadableBuffer(response));
         return r;
     }
 
@@ -299,7 +301,7 @@ public class HttpTester
         {
             if (BufferUtil.hasContent(buffer))
             {
-                if (parser.parseNext(buffer))
+                if (parser.parseNext(ReadableBuffer.wrap(buffer)))
                     break;
             }
             int len = input.fillBuffer();
@@ -308,7 +310,7 @@ public class HttpTester
             if (len < 0)
             {
                 parser.atEOF();
-                parser.parseNext(buffer);
+                parser.parseNext(ReadableBuffer.wrap(buffer));
                 break;
             }
         }
@@ -446,7 +448,7 @@ public class HttpTester
         }
 
         @Override
-        public boolean content(ByteBuffer ref)
+        public boolean content(ReadableBuffer ref)
         {
             try
             {
@@ -480,9 +482,18 @@ public class HttpTester
                 loop:
                 while (!generator.isEnd())
                 {
-                    HttpGenerator.Result result = info instanceof MetaData.Request
-                        ? generator.generateRequest((MetaData.Request)info, header, chunk, content, true)
-                        : generator.generateResponse((MetaData.Response)info, false, header, chunk, content, true);
+                    HttpGenerator.Result result;
+                    {
+                        WritableBuffer wbHeader = header == null ? null : ReadableBuffer.wrap(header).toWritable();
+                        WritableBuffer wbChunk = chunk == null ? null : ReadableBuffer.wrap(chunk).toWritable();
+                        result = info instanceof MetaData.Request
+                            ? generator.generateRequest((MetaData.Request)info, wbHeader, wbChunk, ReadableBuffer.wrap(content), true)
+                            : generator.generateResponse((MetaData.Response)info, false, wbHeader, wbChunk, ReadableBuffer.wrap(content), true);
+                        if (wbHeader != null)
+                            wbHeader.toReadable();
+                        if (wbChunk != null)
+                            wbChunk.toReadable();
+                    }
                     switch (result)
                     {
                         case NEED_HEADER:

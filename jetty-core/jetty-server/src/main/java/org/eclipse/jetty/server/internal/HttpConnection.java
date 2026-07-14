@@ -71,6 +71,8 @@ import org.eclipse.jetty.util.IteratingCallback;
 import org.eclipse.jetty.util.StringUtil;
 import org.eclipse.jetty.util.TypeUtil;
 import org.eclipse.jetty.util.URIUtil;
+import org.eclipse.jetty.util.buffer.ReadableBuffer;
+import org.eclipse.jetty.util.buffer.WritableBuffer;
 import org.eclipse.jetty.util.thread.Invocable;
 import org.eclipse.jetty.util.thread.ThreadPool;
 import org.slf4j.Logger;
@@ -556,7 +558,7 @@ public class HttpConnection extends AbstractMetaDataConnection implements Runnab
                 // chunk followed by an immediately served demand where the next read()
                 // actually makes the parser generate the error chunk.
                 if (filled < 0)
-                    _parser.parseNext(BufferUtil.EMPTY_BUFFER);
+                    _parser.parseNext(ReadableBuffer.EMPTY);
                 break;
             }
         }
@@ -610,7 +612,7 @@ public class HttpConnection extends AbstractMetaDataConnection implements Runnab
         if (_parser.isTerminated())
             throw new UncheckedIOException(new IOException("Parser is terminated"));
 
-        boolean handle = _parser.parseNext(_requestBuffer.getByteBuffer());
+        boolean handle = _parser.parseNext(ReadableBuffer.wrap(_requestBuffer.getByteBuffer()));
 
         if (LOG.isDebugEnabled())
             LOG.debug("parsed {} {} {} {}", handle, _parser, _requestBuffer, this);
@@ -852,17 +854,31 @@ public class HttpConnection extends AbstractMetaDataConnection implements Runnab
             int chunkMaxLength = getTransferEncodingChunkMaxLength();
             while (true)
             {
-                ByteBuffer headerByteBuffer = _header == null ? null : _header.getByteBuffer();
-                ByteBuffer chunkByteBuffer = _chunk == null ? null : _chunk.getByteBuffer();
-                HttpGenerator.Result result = _generator.generateResponse(_info, _head, headerByteBuffer, chunkByteBuffer, _content, _lastContent);
-                if (LOG.isDebugEnabled())
-                    LOG.debug("generate: {} for {} ({},{},{})@{}",
-                        result,
-                        this,
-                        BufferUtil.toSummaryString(headerByteBuffer),
-                        BufferUtil.toSummaryString(_content),
-                        _lastContent,
-                        _generator.getState());
+                HttpGenerator.Result result;
+                ByteBuffer headerByteBuffer;
+                ByteBuffer chunkByteBuffer;
+                {
+                    headerByteBuffer = _header == null ? null : _header.getByteBuffer();
+                    chunkByteBuffer = _chunk == null ? null : _chunk.getByteBuffer();
+                    WritableBuffer headerWb = headerByteBuffer == null ? null : ReadableBuffer.wrap(headerByteBuffer).toWritable();
+                    WritableBuffer chunkWb = chunkByteBuffer == null ? null : ReadableBuffer.wrap(chunkByteBuffer).toWritable();
+
+                    result = _generator.generateResponse(_info, _head, headerWb, chunkWb, ReadableBuffer.wrap(_content), _lastContent);
+
+                    if (headerWb != null)
+                        headerWb.toReadable();
+                    if (chunkWb != null)
+                        chunkWb.toReadable();
+
+                    if (LOG.isDebugEnabled())
+                        LOG.debug("generate: {} for {} ({},{},{})@{}",
+                            result,
+                            this,
+                            BufferUtil.toSummaryString(headerByteBuffer),
+                            BufferUtil.toSummaryString(_content),
+                            _lastContent,
+                            _generator.getState());
+                }
 
                 switch (result)
                 {
@@ -1122,14 +1138,14 @@ public class HttpConnection extends AbstractMetaDataConnection implements Runnab
         }
 
         @Override
-        public boolean content(ByteBuffer buffer)
+        public boolean content(ReadableBuffer buffer)
         {
             HttpStreamOverHTTP1 stream = _stream.get();
             if (stream == null || stream._chunk != null || _requestBuffer == null)
                 throw new IllegalStateException();
 
             if (LOG.isDebugEnabled())
-                LOG.debug("content {}/{} for {}", BufferUtil.toDetailString(buffer), _requestBuffer, HttpConnection.this);
+                LOG.debug("content {}/{} for {}", buffer, _requestBuffer, HttpConnection.this);
 
             _requestBuffer.retain();
             stream._chunk = Content.Chunk.asChunk(buffer, false, _requestBuffer);
