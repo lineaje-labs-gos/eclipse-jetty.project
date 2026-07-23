@@ -13,7 +13,6 @@
 
 package org.eclipse.jetty.fcgi.server.internal;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -227,9 +226,9 @@ public class HttpStreamOverFCGI implements HttpStream
     }
 
     @Override
-    public void send(MetaData.Request request, MetaData.Response response, boolean last, ByteBuffer byteBuffer, Callback callback)
+    public void send(MetaData.Request request, MetaData.Response response, boolean last, ReadableBuffer buffer, Callback callback)
     {
-        ReadableBuffer content = ReadableBuffer.wrap(byteBuffer);
+        ReadableBuffer content = buffer != null ? buffer : ReadableBuffer.EMPTY;
 
         if (LOG.isDebugEnabled())
             LOG.debug("send {} l={} {} {}", request, last, content, this);
@@ -247,10 +246,10 @@ public class HttpStreamOverFCGI implements HttpStream
                 {
                     List<ReadableBuffer> accumulator = new ArrayList<>();
                     generateResponseContent(accumulator, true, ReadableBuffer.EMPTY);
-                    ReadableBuffer buffer = ReadableBuffer.accumulate(accumulator);
+                    ReadableBuffer accumulated = ReadableBuffer.accumulate(accumulator);
                     accumulator.forEach(ReadableBuffer::release);
-                    flusher.flush(buffer, callback);
-                    buffer.release();
+                    flusher.flush(accumulated, callback);
+                    accumulated.release();
                 }
                 else
                 {
@@ -262,10 +261,10 @@ public class HttpStreamOverFCGI implements HttpStream
             {
                 List<ReadableBuffer> accumulator = new ArrayList<>();
                 generateResponseContent(accumulator, last, content);
-                ReadableBuffer buffer = ReadableBuffer.accumulate(accumulator);
+                ReadableBuffer accumulated = ReadableBuffer.accumulate(accumulator);
                 accumulator.forEach(ReadableBuffer::release);
-                flusher.flush(buffer, callback);
-                buffer.release();
+                flusher.flush(accumulated, callback);
+                accumulated.release();
             }
 
             if (last && _shutdown)

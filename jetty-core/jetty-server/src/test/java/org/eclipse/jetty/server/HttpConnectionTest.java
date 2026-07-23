@@ -1194,7 +1194,7 @@ public class HttpConnectionTest
                 response.getHeaders().put(HttpHeader.CONTENT_TYPE.toString(), MimeTypes.Type.TEXT_HTML.toString());
                 response.getHeaders().put("LongStr", longstr);
                 response.write(false,
-                    BufferUtil.toBuffer("<html><h1>FOO</h1></html>"), Callback.from(callback::succeeded, t ->
+                    BufferUtil.toReadableBuffer("<html><h1>FOO</h1></html>"), Callback.from(callback::succeeded, t ->
                     {
                         checkError.countDown();
                         callback.failed(t);
@@ -1233,7 +1233,7 @@ public class HttpConnectionTest
                 response.getHeaders().put("LongStr", longstr);
 
                 response.write(false,
-                    BufferUtil.toBuffer("<html><h1>FOO</h1></html>"), Callback.from(callback::succeeded, t ->
+                    BufferUtil.toReadableBuffer("<html><h1>FOO</h1></html>"), Callback.from(callback::succeeded, t ->
                     {
                         checkError.countDown();
                         callback.failed(t);

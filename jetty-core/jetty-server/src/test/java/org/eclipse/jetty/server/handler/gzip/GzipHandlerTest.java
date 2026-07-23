@@ -227,7 +227,7 @@ public class GzipHandlerTest
                 return super.handle(request, new Response.Wrapper(request, response)
                 {
                     @Override
-                    public void write(boolean last, ByteBuffer byteBuffer, Callback callback)
+                    public void write(boolean last, ReadableBuffer buffer, Callback callback)
                     {
                         throw new ArithmeticException("expected");
                     }
@@ -2033,7 +2033,7 @@ public class GzipHandlerTest
                             buffer = buffer.asReadOnlyBuffer();
                     }
 
-                    response.write(last, buffer, cb);
+                    response.write(last, ReadableBuffer.wrap(buffer), cb);
                 }
             };
 
@@ -2086,7 +2086,7 @@ public class GzipHandlerTest
             }
 
             response.getHeaders().put(HttpHeader.CONTENT_TYPE, this.contentType);
-            response.write(false, byteBuffer.slice(), Callback.from(() -> response.write(true, null, callback)));
+            response.write(false, ReadableBuffer.wrap(byteBuffer.slice()), Callback.from(() -> response.write(true, null, callback)));
             return true;
         }
     }
@@ -2136,7 +2136,7 @@ public class GzipHandlerTest
             ByteBuffer slice = byteBuffer.slice();
             response.getHeaders().put(HttpHeader.CONTENT_LENGTH, slice.remaining());
             response.getHeaders().put(HttpHeader.CONTENT_TYPE, this.contentType);
-            response.write(true, slice, callback);
+            response.write(true, ReadableBuffer.wrap(slice), callback);
             return true;
         }
     }

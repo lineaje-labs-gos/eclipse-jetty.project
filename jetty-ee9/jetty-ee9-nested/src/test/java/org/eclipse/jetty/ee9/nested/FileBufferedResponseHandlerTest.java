@@ -17,7 +17,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -542,7 +541,7 @@ public class FileBufferedResponseHandlerTest
                 httpOutput.setInterceptor(new HttpOutput.Interceptor()
                 {
                     @Override
-                    public void write(ByteBuffer content, boolean last, Callback callback)
+                    public void write(ReadableBuffer content, boolean last, Callback callback)
                     {
                         callback.failed(new Throwable("intentionally throwing from interceptor"));
                     }

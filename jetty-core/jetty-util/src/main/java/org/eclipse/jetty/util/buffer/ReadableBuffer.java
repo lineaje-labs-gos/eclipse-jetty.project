@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -49,6 +50,16 @@ public interface ReadableBuffer extends Retainable
     static ReadableBuffer wrap(ByteBuffer byteBuffer)
     {
         return byteBuffer == null ? EMPTY : wrap(byteBuffer, new ReferenceCounter());
+    }
+
+    static ReadableBuffer wrap(byte[] bytes)
+    {
+        return bytes == null ? EMPTY : wrap(ByteBuffer.wrap(bytes));
+    }
+
+    static ReadableBuffer wrap(byte[] bytes, int offset, int length)
+    {
+        return bytes == null ? EMPTY : wrap(ByteBuffer.wrap(bytes, offset, length));
     }
 
     /**
@@ -89,6 +100,18 @@ public interface ReadableBuffer extends Retainable
         if (readableBuffers.isEmpty())
             return EMPTY;
         return new AccumulatingReadBuffer(readableBuffers);
+    }
+
+    static ReadableBuffer accumulate(ReadableBuffer... readableBuffers)
+    {
+        List<ReadableBuffer> list = new ArrayList<>(readableBuffers.length);
+        for (int i = 0; i < readableBuffers.length; i++)
+        {
+            ReadableBuffer readableBuffer = readableBuffers[i];
+            if (readableBuffer != null)
+                list.add(readableBuffer);
+        }
+        return accumulate(list);
     }
 
     /**

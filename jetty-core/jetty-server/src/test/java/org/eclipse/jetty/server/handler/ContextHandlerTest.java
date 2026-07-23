@@ -74,6 +74,7 @@ import org.eclipse.jetty.util.Blocker;
 import org.eclipse.jetty.util.BufferUtil;
 import org.eclipse.jetty.util.Callback;
 import org.eclipse.jetty.util.IO;
+import org.eclipse.jetty.util.buffer.ReadableBuffer;
 import org.eclipse.jetty.util.component.Dumpable;
 import org.eclipse.jetty.util.component.Graceful;
 import org.junit.jupiter.api.AfterAll;
@@ -200,7 +201,7 @@ public class ContextHandlerTest
                              Blocker.Callback cb = Blocker.callback())
                         {
                             // When a classloader is configured, Response.write() tries to set it as the context classloader.
-                            response.write(true, ByteBuffer.allocate(32), cb);
+                            response.write(true, ReadableBuffer.allocate(32, false), cb);
                             cb.block();
                         }
                         catch (IOException e)
@@ -272,7 +273,7 @@ public class ContextHandlerTest
                                  Blocker.Callback cb = Blocker.callback())
                             {
                                 // When a classloader is configured, Response.write() tries to set it as the context classloader.
-                                response.write(true, ByteBuffer.allocate(32), cb);
+                                response.write(true, ReadableBuffer.allocate(32, false), cb);
                                 cb.block();
                             }
                             catch (IOException e)
@@ -507,7 +508,7 @@ public class ContextHandlerTest
                     assertTrue(chunk.hasRemaining());
                     assertTrue(chunk.isLast());
                     response.setStatus(200);
-                    response.write(true, chunk.getByteBuffer(), Callback.from(
+                    response.write(true, ReadableBuffer.wrap(chunk.getByteBuffer()), Callback.from(
                         () ->
                         {
                             chunk.release();
@@ -533,7 +534,7 @@ public class ContextHandlerTest
         MockHttpStream stream = new MockHttpStream(channel, false)
         {
             @Override
-            public void send(MetaData.Request request, MetaData.Response response, boolean last, ByteBuffer content, Callback callback)
+            public void send(MetaData.Request request, MetaData.Response response, boolean last, ReadableBuffer content, Callback callback)
             {
                 sendCB.set(callback);
                 super.send(request, response, last, content, Callback.NOOP);

@@ -28,6 +28,7 @@ import org.eclipse.jetty.util.Callback;
 import org.eclipse.jetty.util.IO;
 import org.eclipse.jetty.util.IteratingNestedCallback;
 import org.eclipse.jetty.util.TypeUtil;
+import org.eclipse.jetty.util.buffer.ReadableBuffer;
 import org.eclipse.jetty.util.resource.MemoryResource;
 import org.eclipse.jetty.util.resource.Resource;
 
@@ -267,7 +268,7 @@ public class IOResources
             if (resource instanceof MemoryResource memoryResource)
             {
                 ByteBuffer byteBuffer = BufferUtil.slice(ByteBuffer.wrap(memoryResource.getBytes()), Math.toIntExact(offset), Math.toIntExact(length));
-                sink.write(true, byteBuffer, callback);
+                sink.write(true, ReadableBuffer.wrap(byteBuffer), callback);
                 return;
             }
 
@@ -355,7 +356,7 @@ public class IOResources
             }
             BufferUtil.flipToFlush(byteBuffer, 0);
             terminated = eof || remainingLength == 0;
-            sink.write(terminated, byteBuffer, this);
+            sink.write(terminated, ReadableBuffer.wrap(byteBuffer), this);
             return Action.SCHEDULED;
         }
 

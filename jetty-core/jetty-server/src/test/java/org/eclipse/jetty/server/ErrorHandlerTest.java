@@ -774,7 +774,7 @@ public class ErrorHandlerTest
             @Override
             public boolean handle(Request request, Response response, Callback callback)
             {
-                response.write(true, BufferUtil.toBuffer("Context Error"), callback);
+                response.write(true, BufferUtil.toReadableBuffer("Context Error"), callback);
                 return true;
             }
         });
@@ -793,7 +793,7 @@ public class ErrorHandlerTest
             @Override
             public boolean handle(Request request, Response response, Callback callback)
             {
-                response.write(true, BufferUtil.toBuffer("Server Error"), callback);
+                response.write(true, BufferUtil.toReadableBuffer("Server Error"), callback);
                 return true;
             }
         });

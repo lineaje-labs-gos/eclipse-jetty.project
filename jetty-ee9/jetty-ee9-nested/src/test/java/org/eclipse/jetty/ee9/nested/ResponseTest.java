@@ -77,6 +77,7 @@ import org.eclipse.jetty.util.BufferUtil;
 import org.eclipse.jetty.util.Callback;
 import org.eclipse.jetty.util.NanoTime;
 import org.eclipse.jetty.util.URIUtil;
+import org.eclipse.jetty.util.buffer.ReadableBuffer;
 import org.eclipse.jetty.util.thread.Scheduler;
 import org.eclipse.jetty.util.thread.TimerScheduler;
 import org.hamcrest.Matchers;
@@ -2461,10 +2462,10 @@ public class ResponseTest
         }
 
         @Override
-        public void write(boolean last, ByteBuffer content, Callback callback)
+        public void write(boolean last, ReadableBuffer content, Callback callback)
         {
             if (content != null)
-                BufferUtil.append(_content, content);
+                BufferUtil.put(content, _content);
             _committed = true;
             _last |= last;
             callback.succeeded();

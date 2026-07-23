@@ -17,6 +17,7 @@ import java.nio.ByteBuffer;
 import java.util.Collection;
 
 import org.eclipse.jetty.server.AbstractConnector;
+import org.eclipse.jetty.util.buffer.ReadableBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -148,7 +149,7 @@ public class HttpChannelListeners implements HttpChannel.Listener
     }
 
     @Override
-    public void onRequestContent(Request request, ByteBuffer content)
+    public void onRequestContent(Request request, ReadableBuffer content)
     {
         onRequestContent.onContent(request, content);
     }
@@ -190,7 +191,7 @@ public class HttpChannelListeners implements HttpChannel.Listener
     }
 
     @Override
-    public void onResponseContent(Request request, ByteBuffer content)
+    public void onResponseContent(Request request, ReadableBuffer content)
     {
         onResponseContent.onContent(request, content);
     }
@@ -233,7 +234,7 @@ public class HttpChannelListeners implements HttpChannel.Listener
 
     private interface NotifyContent
     {
-        void onContent(Request request, ByteBuffer content);
+        void onContent(Request request, ReadableBuffer content);
 
         NotifyContent NOOP = (request, content) ->
         {

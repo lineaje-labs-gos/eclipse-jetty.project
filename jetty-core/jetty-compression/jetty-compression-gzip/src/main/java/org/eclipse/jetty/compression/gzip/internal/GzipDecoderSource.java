@@ -13,6 +13,8 @@
 
 package org.eclipse.jetty.compression.gzip.internal;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
@@ -22,8 +24,8 @@ import org.eclipse.jetty.compression.DecoderSource;
 import org.eclipse.jetty.compression.gzip.GzipCompression;
 import org.eclipse.jetty.compression.gzip.GzipDecoderConfig;
 import org.eclipse.jetty.io.Content;
-import org.eclipse.jetty.io.RetainableByteBuffer;
-import org.eclipse.jetty.util.BufferUtil;
+import org.eclipse.jetty.util.buffer.ReadableBuffer;
+import org.eclipse.jetty.util.buffer.WritableBuffer;
 import org.eclipse.jetty.util.compression.InflaterPool;
 
 public class GzipDecoderSource extends DecoderSource
@@ -102,23 +104,42 @@ public class GzipDecoderSource extends DecoderSource
                     {
                         while (true)
                         {
-                            RetainableByteBuffer buffer = compression.acquireByteBuffer(bufferSize);
+                            WritableBuffer wb = compression.acquireBuffer(bufferSize);
                             try
                             {
-                                ByteBuffer decoded = buffer.getByteBuffer();
-                                int pos = BufferUtil.flipToFill(decoded);
-                                inflater.inflate(decoded);
-                                BufferUtil.flipToFlush(decoded, pos);
-                                if (buffer.hasRemaining())
-                                    return Content.Chunk.asChunk(decoded, false, buffer);
-                                buffer.release();
+                                try
+                                {
+                                    wb.readFrom(output ->
+                                    {
+                                        try
+                                        {
+                                            inflater.inflate(output);
+                                            return false;
+                                        }
+                                        catch (DataFormatException e)
+                                        {
+                                            throw new IOException(e);
+                                        }
+                                    });
+                                }
+                                catch (IOException e)
+                                {
+                                    throw new UncheckedIOException(e);
+                                }
+
+                                ReadableBuffer rb = wb.toReadable();
+                                if (rb.remaining() > 0L)
+                                    return Content.Chunk.asChunk(rb, false, null);
                             }
-                            catch (DataFormatException x)
+                            catch (UncheckedIOException x)
                             {
-                                buffer.release();
                                 ZipException failure = new ZipException();
                                 failure.initCause(x);
                                 throw failure;
+                            }
+                            finally
+                            {
+                                wb.release();
                             }
 
                             if (inflater.needsInput())

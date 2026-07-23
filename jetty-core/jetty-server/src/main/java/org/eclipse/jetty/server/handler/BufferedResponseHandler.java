@@ -13,8 +13,6 @@
 
 package org.eclipse.jetty.server.handler;
 
-import java.nio.ByteBuffer;
-
 import org.eclipse.jetty.http.HttpHeader;
 import org.eclipse.jetty.http.HttpMethod;
 import org.eclipse.jetty.http.HttpStatus;
@@ -29,6 +27,7 @@ import org.eclipse.jetty.server.Response;
 import org.eclipse.jetty.util.Callback;
 import org.eclipse.jetty.util.IncludeExclude;
 import org.eclipse.jetty.util.StringUtil;
+import org.eclipse.jetty.util.buffer.ReadableBuffer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -179,7 +178,7 @@ public class BufferedResponseHandler extends ConditionalHandler.Abstract
         }
 
         @Override
-        public void write(boolean last, ByteBuffer byteBuffer, Callback callback)
+        public void write(boolean last, ReadableBuffer buffer, Callback callback)
         {
             if (_firstWrite)
             {
@@ -189,7 +188,7 @@ public class BufferedResponseHandler extends ConditionalHandler.Abstract
             }
             _lastWritten |= last;
             Content.Sink destSink = _bufferedContentSink != null ? _bufferedContentSink : getWrapped();
-            destSink.write(last, byteBuffer, callback);
+            destSink.write(last, buffer, callback);
         }
 
         private Content.Sink createBufferedSink()

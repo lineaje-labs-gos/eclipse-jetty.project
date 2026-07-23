@@ -315,7 +315,7 @@ public class RequestTest
 
                 response.setStatus(200);
                 response.getHeaders().put(HttpHeader.CONTENT_TYPE, "text/plain");
-                response.write(true, ByteBuffer.wrap(buf), Callback.NOOP);
+                response.write(true, ReadableBuffer.wrap(buf), Callback.NOOP);
                 return true;
             }
         });
@@ -357,10 +357,10 @@ public class RequestTest
                 int half = bufferSize / 2;
                 ByteBuffer halfBuf = bbuf.slice();
                 halfBuf.limit(half);
-                response.write(false, halfBuf, Callback.from(() ->
+                response.write(false, ReadableBuffer.wrap(halfBuf), Callback.from(() ->
                 {
                     bbuf.position(half);
-                    response.write(true, bbuf, callback);
+                    response.write(true, ReadableBuffer.wrap(bbuf), callback);
                 }));
                 return true;
             }
@@ -405,7 +405,7 @@ public class RequestTest
                     for (HttpCookie c : coreCookies)
                         buff.writeBytes(("Core Cookie: " + c.getName() + "=" + c.getValue() + "\n").getBytes());
                 }
-                response.write(true, ByteBuffer.wrap(buff.toByteArray()), callback);
+                response.write(true, ReadableBuffer.wrap(buff.toByteArray()), callback);
                 return true;
             }
         });
@@ -450,7 +450,7 @@ public class RequestTest
                 response.getHeaders().put(HttpHeader.CONTENT_TYPE, "text/plain");
                 byte[] buf = new byte[4096];
                 Arrays.fill(buf, (byte)'x');
-                response.write(true, ByteBuffer.wrap(buf), callback);
+                response.write(true, ReadableBuffer.wrap(buf), callback);
                 return true;
             }
         });
@@ -485,7 +485,7 @@ public class RequestTest
                 response.getHeaders().put(HttpHeader.CONTENT_TYPE, "text/plain");
                 byte[] buf = new byte[4096];
                 Arrays.fill(buf, (byte)'x');
-                response.write(true, ByteBuffer.wrap(buf), callback);
+                response.write(true, ReadableBuffer.wrap(buf), callback);
                 return true;
             }
         });
@@ -523,7 +523,7 @@ public class RequestTest
                 response.getHeaders().put(HttpHeader.CONTENT_TYPE, "text/plain");
                 byte[] buf = new byte[4096];
                 Arrays.fill(buf, (byte)'x');
-                response.write(true, ByteBuffer.wrap(buf), callback);
+                response.write(true, ReadableBuffer.wrap(buf), callback);
                 return true;
             }
         });

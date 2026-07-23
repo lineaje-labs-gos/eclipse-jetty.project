@@ -62,12 +62,12 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.Session;
 import org.eclipse.jetty.server.TunnelSupport;
 import org.eclipse.jetty.util.Attributes;
-import org.eclipse.jetty.util.BufferUtil;
 import org.eclipse.jetty.util.Callback;
 import org.eclipse.jetty.util.ExceptionUtil;
 import org.eclipse.jetty.util.NanoTime;
 import org.eclipse.jetty.util.TypeUtil;
 import org.eclipse.jetty.util.VirtualThreads;
+import org.eclipse.jetty.util.buffer.ReadableBuffer;
 import org.eclipse.jetty.util.thread.AutoLock;
 import org.eclipse.jetty.util.thread.Invocable;
 import org.eclipse.jetty.util.thread.Scheduler;
@@ -1246,7 +1246,7 @@ public class HttpChannelState implements HttpChannel, Components
 
     /**
      * The Channel's implementation of the {@link Response} API.
-     * Also is a {@link Callback} used by the {@link #write(boolean, ByteBuffer, Callback)}
+     * Also is a {@link Callback} used by the {@link #write(boolean, ReadableBuffer, Callback)}
      * method when calling
      * {@link HttpStream#send(MetaData.Request, MetaData.Response, boolean, ByteBuffer, Callback)}
      */
@@ -1346,11 +1346,11 @@ public class HttpChannelState implements HttpChannel, Components
         }
 
         @Override
-        public void write(boolean last, ByteBuffer content, Callback callback)
+        public void write(boolean last, ReadableBuffer content, Callback callback)
         {
             Callback writeCallback = Objects.requireNonNullElse(callback, NOOP);
 
-            long length = BufferUtil.length(content);
+            long length = content == null ? 0L : content.remaining();
 
             HttpChannelState httpChannelState;
             HttpStream stream;
@@ -1433,7 +1433,7 @@ public class HttpChannelState implements HttpChannel, Components
         /**
          * Called when the call to
          * {@link HttpStream#send(MetaData.Request, MetaData.Response, boolean, ByteBuffer, Callback)}
-         * made by {@link ChannelResponse#write(boolean, ByteBuffer, Callback)} succeeds.
+         * made by {@link ChannelResponse#write(boolean, ReadableBuffer, Callback)} succeeds.
          * The implementation maintains the {@link #_streamSendState} before taking
          * and serializing the call to the {@link #_writeCallback}, which was set by the call to {@code write}.
          */
@@ -1459,7 +1459,7 @@ public class HttpChannelState implements HttpChannel, Components
         /**
          * Called when the call to
          * {@link HttpStream#send(MetaData.Request, MetaData.Response, boolean, ByteBuffer, Callback)}
-         * made by {@link ChannelResponse#write(boolean, ByteBuffer, Callback)} fails.
+         * made by {@link ChannelResponse#write(boolean, ReadableBuffer, Callback)} fails.
          * <p>
          * The implementation maintains the {@link #_streamSendState} before taking
          * and serializing the call to the {@link #_writeCallback}, which was set by the call to {@code write}.

@@ -14,7 +14,6 @@
 package org.eclipse.jetty.server;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -442,7 +441,7 @@ public class RequestListenersTest
 
                 // Issue a large write that will be congested.
                 // The idle timeout should fail the write callback.
-                ByteBuffer byteBuffer = ByteBuffer.allocate(128 * 1024 * 1024);
+                ReadableBuffer byteBuffer = ReadableBuffer.allocate(128 * 1024 * 1024, false);
                 response.write(false, byteBuffer, Callback.from(() -> {}, x -> writeFailed.complete(callback)));
 
                 return true;
@@ -468,7 +467,7 @@ public class RequestListenersTest
             Response response = responseRef.get();
             CountDownLatch writeFailedLatch = new CountDownLatch(1);
             // Use a non-empty buffer to avoid short-circuit the write.
-            response.write(false, ByteBuffer.allocate(16), Callback.from(() -> {}, x -> writeFailedLatch.countDown()));
+            response.write(false, ReadableBuffer.allocate(16, false), Callback.from(() -> {}, x -> writeFailedLatch.countDown()));
             assertTrue(writeFailedLatch.await(5, TimeUnit.SECONDS));
 
             // The write side has failed, but the read side has not.

@@ -16,6 +16,7 @@ package org.eclipse.jetty.compression.brotli;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.nio.ByteOrder;
 import java.util.List;
 import java.util.Objects;
@@ -34,7 +35,7 @@ import org.eclipse.jetty.http.HttpField;
 import org.eclipse.jetty.http.HttpHeader;
 import org.eclipse.jetty.http.PreEncodedHttpField;
 import org.eclipse.jetty.io.Content;
-import org.eclipse.jetty.io.RetainableByteBuffer;
+import org.eclipse.jetty.util.buffer.WritableBuffer;
 
 /**
  * Brotli Compression.
@@ -62,10 +63,22 @@ public class BrotliCompression extends Compression
     }
 
     @Override
-    public RetainableByteBuffer.Mutable acquireByteBuffer(int length)
+    public WritableBuffer acquireBuffer(int length)
     {
-        RetainableByteBuffer.Mutable buffer = getByteBufferPool().acquire(length, true);
-        buffer.getByteBuffer().order(getByteOrder());
+        WritableBuffer buffer = getBufferPool().acquire(length, true);
+        // Hack to set the ByteOrder of the internal buffer. TODO: add a method to WritableBuffer to set the ByteOrder?
+        try
+        {
+            buffer.readFrom(output ->
+            {
+                output.order(getByteOrder());
+                return false;
+            });
+        }
+        catch (IOException e)
+        {
+            throw new UncheckedIOException(e);
+        }
         return buffer;
     }
 
