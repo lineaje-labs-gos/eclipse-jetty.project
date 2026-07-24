@@ -284,7 +284,6 @@ public class HttpParser
     private long _chunkOffset;
     private boolean _headResponse;
     private boolean _cr;
-    private ReadableBuffer _contentChunk;
     private int _length;
     private ChunkSizeState _chunkSizeState = ChunkSizeState.SIZE;
     private boolean _chunkQuotedEscape = false;
@@ -1871,132 +1870,140 @@ public class HttpParser
         // Handle content.
         while (_state.ordinal() < State.TRAILER.ordinal() && remaining > 0)
         {
-            switch (_state)
+            ReadableBuffer contentChunk = null;
+            try
             {
-                case EOF_CONTENT:
-                    _contentChunk = buffer.slice();
-                    _contentPosition += remaining;
-                    buffer.position(buffer.position() + remaining);
-                    if (_handler.content(_contentChunk))
-                        return true;
-                    break;
-
-                case CONTENT:
+                switch (_state)
                 {
-                    long content = _contentLength - _contentPosition;
-                    if (_endOfContent == EndOfContent.NO_CONTENT || content == 0)
-                    {
-                        setState(State.CONTENT_END);
-                        return handleContentMessage();
-                    }
-                    else
-                    {
-                        long length = remaining;
-                        // Limit the content by the expected length if _contentLength is >= 0 (i.e.: not infinite).
-                        if (_contentLength > -1 && remaining > content)
-                        {
-                            // The cast to int is safe, since remaining is an int.
-                            length = (int)content;
-                        }
-                        _contentChunk = buffer.slice(buffer.position(), length);
-
-                        _contentPosition += length;
-                        buffer.position(buffer.position() + length);
-
-                        if (_handler.content(_contentChunk))
+                    case EOF_CONTENT:
+                        contentChunk = buffer.slice();
+                        _contentPosition += remaining;
+                        buffer.position(buffer.position() + remaining);
+                        if (_handler.content(contentChunk))
                             return true;
+                        break;
 
-                        if (_contentPosition == _contentLength)
+                    case CONTENT:
+                    {
+                        long content = _contentLength - _contentPosition;
+                        if (_endOfContent == EndOfContent.NO_CONTENT || content == 0)
                         {
                             setState(State.CONTENT_END);
                             return handleContentMessage();
                         }
-                    }
-                    break;
-                }
+                        else
+                        {
+                            long length = remaining;
+                            // Limit the content by the expected length if _contentLength is >= 0 (i.e.: not infinite).
+                            if (_contentLength > -1 && remaining > content)
+                            {
+                                // The cast to int is safe, since remaining is an int.
+                                length = (int)content;
+                            }
+                            contentChunk = buffer.slice(buffer.position(), length);
 
-                case CHUNKED_CONTENT:
-                {
-                    HttpTokens.Token t = next(buffer);
-                    if (t == null)
+                            _contentPosition += length;
+                            buffer.position(buffer.position() + length);
+
+                            if (_handler.content(contentChunk))
+                                return true;
+
+                            if (_contentPosition == _contentLength)
+                            {
+                                setState(State.CONTENT_END);
+                                return handleContentMessage();
+                            }
+                        }
                         break;
+                    }
 
-                    _chunkOffset = 0;
-                    switch (t.getType())
+                    case CHUNKED_CONTENT:
                     {
-                        case DIGIT:
-                            _chunkLength = t.getHexDigit();
-                            setState(State.CHUNK_SIZE);
+                        HttpTokens.Token t = next(buffer);
+                        if (t == null)
                             break;
 
-                        case ALPHA:
-                            if (t.isHexDigit())
-                            {
+                        _chunkOffset = 0;
+                        switch (t.getType())
+                        {
+                            case DIGIT:
                                 _chunkLength = t.getHexDigit();
                                 setState(State.CHUNK_SIZE);
                                 break;
-                            }
-                            throw new IllegalCharacterException(_state, t, buffer);
 
-                        default:
-                            throw new IllegalCharacterException(_state, t, buffer);
-                    }
-                    break;
-                }
+                            case ALPHA:
+                                if (t.isHexDigit())
+                                {
+                                    _chunkLength = t.getHexDigit();
+                                    setState(State.CHUNK_SIZE);
+                                    break;
+                                }
+                                throw new IllegalCharacterException(_state, t, buffer);
 
-                case CHUNK_SIZE:
-                {
-                    if (parseChunkSize(buffer))
-                        return true;
-                    break;
-                }
-
-                case CHUNK:
-                {
-                    long chunkLength = _chunkLength - _chunkOffset;
-                    if (chunkLength == 0)
-                    {
-                        setState(State.CHUNK_END);
-                    }
-                    else
-                    {
-                        int length = (int)Math.min(remaining, chunkLength);
-                        _contentChunk = buffer.slice(buffer.position(), length);
-
-                        _contentPosition += length;
-                        _chunkOffset += length;
-                        buffer.position(buffer.position() + length);
-                        if (_handler.content(_contentChunk))
-                            return true;
-                    }
-                    break;
-                }
-
-                case CHUNK_END:
-                {
-                    HttpTokens.Token t = next(buffer);
-                    if (t == null)
+                            default:
+                                throw new IllegalCharacterException(_state, t, buffer);
+                        }
                         break;
+                    }
 
-                    // We must be exactly on a line-terminator after consuming the chunk.
-                    if (t.getType() != HttpTokens.Type.EOL)
-                        throw new IllegalCharacterException(_state, t, buffer);
-                    if (t == EOL_LF)
-                        checkViolation(LF_CHUNK_TERMINATION);
-                    setState(State.CHUNKED_CONTENT);
-                    break;
+                    case CHUNK_SIZE:
+                    {
+                        if (parseChunkSize(buffer))
+                            return true;
+                        break;
+                    }
+
+                    case CHUNK:
+                    {
+                        long chunkLength = _chunkLength - _chunkOffset;
+                        if (chunkLength == 0)
+                        {
+                            setState(State.CHUNK_END);
+                        }
+                        else
+                        {
+                            int length = (int)Math.min(remaining, chunkLength);
+                            contentChunk = buffer.slice(buffer.position(), length);
+
+                            _contentPosition += length;
+                            _chunkOffset += length;
+                            buffer.position(buffer.position() + length);
+                            if (_handler.content(contentChunk))
+                                return true;
+                        }
+                        break;
+                    }
+
+                    case CHUNK_END:
+                    {
+                        HttpTokens.Token t = next(buffer);
+                        if (t == null)
+                            break;
+
+                        // We must be exactly on a line-terminator after consuming the chunk.
+                        if (t.getType() != HttpTokens.Type.EOL)
+                            throw new IllegalCharacterException(_state, t, buffer);
+                        if (t == EOL_LF)
+                            checkViolation(LF_CHUNK_TERMINATION);
+                        setState(State.CHUNKED_CONTENT);
+                        break;
+                    }
+
+                    case CONTENT_END:
+                    {
+                        setState(_endOfContent == EndOfContent.EOF_CONTENT ? State.CLOSED : State.END);
+                        return _handler.messageComplete();
+                    }
+
+                    default:
+                        break;
                 }
-
-                case CONTENT_END:
-                {
-                    setState(_endOfContent == EndOfContent.EOF_CONTENT ? State.CLOSED : State.END);
-                    return _handler.messageComplete();
-                }
-
-                default:
-                    break;
             }
-
+            finally
+            {
+                if (contentChunk != null)
+                    contentChunk.release();
+            }
             remaining = buffer.remaining();
         }
         return false;
@@ -2270,7 +2277,6 @@ public class HttpParser
         _chunkOffset = 0;
         _headResponse = false;
         _cr = false;
-        _contentChunk = null;
         _length = 0;
         _chunkSizeState = ChunkSizeState.SIZE;
         _chunkQuotedEscape = false;
