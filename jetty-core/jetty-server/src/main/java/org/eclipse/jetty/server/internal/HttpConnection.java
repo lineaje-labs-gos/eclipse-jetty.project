@@ -925,7 +925,8 @@ public class HttpConnection extends AbstractMetaDataConnection implements Runnab
                         {
                             if (_chunk != null)
                                 _chunk.position(_chunk.position() + _chunk.capacity());
-                            _content.position(_content.position() + _content.remaining());
+                            if (_content != null)
+                                _content.position(_content.position() + _content.remaining());
                         }
 
                         long bytes = 0;
