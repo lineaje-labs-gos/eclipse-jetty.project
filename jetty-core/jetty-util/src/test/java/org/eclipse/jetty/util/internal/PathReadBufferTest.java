@@ -198,7 +198,8 @@ public class PathReadBufferTest
         Path testResourcePathFile = MavenTestingUtils.getTestResourcePathFile("resource.txt");
         ReadableBuffer rb = ReadableBuffer.wrap(testResourcePathFile, WritableBufferPool.SIZED_NON_POOLING);
 
-        long written = rb.writeTo(new ReadableBuffer.TransferringTarget() {
+        long written = rb.writeTo(new ReadableBuffer.TransferringTarget()
+        {
             @Override
             public long write(FileChannel input, long position, long count) throws IOException
             {
