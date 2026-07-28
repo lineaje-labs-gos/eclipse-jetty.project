@@ -16,13 +16,18 @@ package org.eclipse.jetty.util.internal;
 import java.io.IOException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.eclipse.jetty.toolchain.test.MavenTestingUtils;
+import org.eclipse.jetty.util.BufferUtil;
 import org.eclipse.jetty.util.buffer.ReadableBuffer;
 import org.eclipse.jetty.util.buffer.WritableBuffer;
+import org.eclipse.jetty.util.buffer.WritableBufferPool;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -664,27 +669,6 @@ public class AccumulatingReadBufferTest
     }
 
     @Test
-    public void testDrain()
-    {
-        ReadableBuffer rb1 = ReadableBuffer.wrap(ByteBuffer.allocate(10)
-            .put((byte)0)
-            .put((byte)0)
-            .flip());
-        ReadableBuffer rb2 = ReadableBuffer.wrap(ByteBuffer.allocate(10)
-            .put((byte)0)
-            .put((byte)1)
-            .flip());
-        ReadableBuffer acc = ReadableBuffer.accumulate(List.of(rb1, rb2));
-
-        assertEquals(0, acc.position());
-        assertEquals(4, acc.remaining());
-
-        acc.drain();
-        assertEquals(0, acc.position());
-        assertEquals(0, acc.remaining());
-    }
-
-    @Test
     public void testByteBuffersNotAtZeroPositionGet()
     {
         ReadableBuffer rb1 = ReadableBuffer.wrap(ByteBuffer.allocate(10)
@@ -708,7 +692,7 @@ public class AccumulatingReadBufferTest
     }
 
     @Test
-    public void testWriteToGathering() throws IOException
+    public void testWriteToGatheringOnly() throws IOException
     {
         ReadableBuffer rb1 = ReadableBuffer.wrap(ByteBuffer.allocate(10)
             .putInt(11)
@@ -752,6 +736,84 @@ public class AccumulatingReadBufferTest
         assertEquals(12, writtenIntegers.get(1));
         assertEquals(13, writtenIntegers.get(2));
         assertEquals(14, writtenIntegers.get(3));
+    }
+
+    @Test
+    public void testWriteToGatheringAndTransferring() throws IOException
+    {
+        ReadableBuffer rb1 = ReadableBuffer.wrap(ByteBuffer.allocate(10)
+            .putInt(11)
+            .putInt(12)
+            .flip());
+        ReadableBuffer rb2 = ReadableBuffer.wrap(ByteBuffer.allocate(10)
+            .putInt(13)
+            .putInt(14)
+            .flip());
+        Path testResourcePathFile = MavenTestingUtils.getTestResourcePathFile("resource.txt");
+        ReadableBuffer rb3 = ReadableBuffer.wrap(testResourcePathFile, WritableBufferPool.SIZED_NON_POOLING);
+        ReadableBuffer rb4 = ReadableBuffer.wrap(ByteBuffer.allocate(10)
+            .putInt(15)
+            .putInt(16)
+            .flip());
+        ReadableBuffer rb5 = ReadableBuffer.wrap(ByteBuffer.allocate(10)
+            .putInt(17)
+            .putInt(18)
+            .flip());
+
+        ReadableBuffer acc = ReadableBuffer.accumulate(List.of(rb1, rb2, rb3, rb4, rb5));
+        assertEquals(0, acc.position());
+        assertEquals(52, acc.remaining());
+
+        List<Object> writtenObjects = new ArrayList<>();
+        long written = acc.writeTo(new TestGatheringTarget()
+        {
+            @Override
+            public long write(FileChannel input, long position, long count) throws IOException
+            {
+                ByteBuffer bb = ByteBuffer.allocate((int)count);
+                input.read(bb, position);
+                bb.flip();
+                String string = BufferUtil.toString(bb);
+                writtenObjects.add(string);
+                return count;
+            }
+
+            @Override
+            public void write(ByteBuffer[] inputs)
+            {
+                for (ByteBuffer input : inputs)
+                {
+                    while (input.hasRemaining())
+                    {
+                        writtenObjects.add(input.getInt());
+                    }
+                }
+            }
+
+            @Override
+            public void write(ByteBuffer input)
+            {
+                fail("gathering write should have been called instead");
+            }
+        });
+        assertEquals(52, written);
+
+        assertEquals(52, acc.position());
+        assertEquals(0, acc.remaining());
+        assertEquals(9, writtenObjects.size());
+        assertEquals(11, writtenObjects.get(0));
+        assertEquals(12, writtenObjects.get(1));
+        assertEquals(13, writtenObjects.get(2));
+        assertEquals(14, writtenObjects.get(3));
+        assertEquals("This is a text file\n", writtenObjects.get(4));
+        assertEquals(15, writtenObjects.get(5));
+        assertEquals(16, writtenObjects.get(6));
+        assertEquals(17, writtenObjects.get(7));
+        assertEquals(18, writtenObjects.get(8));
+    }
+
+    private abstract static class TestGatheringTarget implements ReadableBuffer.GatheringTarget, ReadableBuffer.TransferringTarget
+    {
     }
 
     @Test

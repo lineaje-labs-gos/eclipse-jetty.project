@@ -16,7 +16,8 @@ package org.eclipse.jetty.util.buffer;
 import java.io.IOException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
+import java.nio.channels.FileChannel;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -25,6 +26,7 @@ import org.eclipse.jetty.util.BufferUtil;
 import org.eclipse.jetty.util.Retainable;
 import org.eclipse.jetty.util.internal.AccumulatingReadBuffer;
 import org.eclipse.jetty.util.internal.FixedSizeBuffer;
+import org.eclipse.jetty.util.internal.PathReadBuffer;
 
 /**
  * Wraps a byte container, exposing a read-only API. The byte container could be for instance:
@@ -112,6 +114,16 @@ public interface ReadableBuffer extends Retainable
                 list.add(readableBuffer);
         }
         return accumulate(list);
+    }
+
+    static ReadableBuffer wrap(Path path, WritableBufferPool.Sized pool) throws IOException
+    {
+        return new PathReadBuffer(path, 0L, -1L, pool);
+    }
+
+    static ReadableBuffer wrap(Path path, long offset, long limit, WritableBufferPool.Sized pool) throws IOException
+    {
+        return new PathReadBuffer(path, offset, limit, pool);
     }
 
     /**
@@ -221,21 +233,12 @@ public interface ReadableBuffer extends Retainable
     WritableBuffer compact();
 
     /**
-     * Drains and drops all unread bytes from this ReadableBuffer and resets the position to 0.
-     * // TODO throw ISE when isRetained() == true?
-     * // TODO is this method really useful? shouldn't it be removed?
-     */
-    void drain();
-
-    /**
      * Flips this WritableBuffer to fill mode
      * @return this, typed as a {@link ReadableBuffer}
      * // TODO throw ISE when isRetained() == true?
      * // TODO should this auto-compact when empty but not at position 0? Or always auto-compact?
      */
     WritableBuffer toWritable();
-
-    String asString(Charset charset);
 
     /**
      * Flushes this buffer to the given Target.
@@ -252,7 +255,7 @@ public interface ReadableBuffer extends Retainable
     {
         /**
          * Flushes a given NIO ByteBuffer. Note that this method can be called more than once if the {@code input} byte buffer
-         * is depleted, for instance if the WritableBuffer is backed by more than one NIO ByteBuffer.
+         * is depleted, for instance, if the WritableBuffer is backed by more than one NIO ByteBuffer.
          * @param input the buffer to be written
          * @throws IOException when IOException occurs
          */
@@ -266,10 +269,27 @@ public interface ReadableBuffer extends Retainable
     interface GatheringTarget extends Target
     {
         /**
-         * Flushes a given NIO ByteBuffer. Note that this method is never be called more than once.
+         * Flushes a given NIO ByteBuffer array.
          * @param inputs the buffer to be written
          * @throws IOException when IOException occurs
          */
         void write(ByteBuffer[] inputs) throws IOException;
+    }
+
+    /**
+     * Interface of the Target (i.e.: byte destination) used to flush a ReadableBuffer backed by a FileChannel.
+     * This is meant to be used when the target can perform the copy via the NIO FileChannel.transferTo().
+     */
+    interface TransferringTarget extends Target
+    {
+        /**
+         * Flushes a given FileChannel from the given position, up to the given count.
+         * @param input the source FileChannel
+         * @param position the position in the source FileChannel; always non-negative
+         * @param count the maximum number of bytes to be transferred; always non-negative
+         * @return the number of bytes that were transferred
+         * @throws IOException when IOException occurs
+         */
+        long write(FileChannel input, long position, long count) throws IOException;
     }
 }

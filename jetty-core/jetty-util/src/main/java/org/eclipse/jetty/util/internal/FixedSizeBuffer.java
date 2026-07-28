@@ -16,7 +16,6 @@ package org.eclipse.jetty.util.internal;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 
 import org.eclipse.jetty.util.BufferUtil;
 import org.eclipse.jetty.util.Retainable;
@@ -175,14 +174,6 @@ public class FixedSizeBuffer implements WritableBuffer, ReadableBuffer
     }
 
     @Override
-    public String asString(Charset charset)
-    {
-        if (flushPosition != -1)
-            throw new IllegalStateException("Cannot convert to String in write mode");
-        return charset.decode(byteBuffer).toString();
-    }
-
-    @Override
     public ReadableBuffer slice()
     {
         if (flushPosition != -1)
@@ -292,15 +283,6 @@ public class FixedSizeBuffer implements WritableBuffer, ReadableBuffer
         if (flushPosition == -1)
             throw new IllegalStateException("Cannot write to buffer in read mode");
         byteBuffer.put(bytes);
-    }
-
-    @Override
-    public void drain()
-    {
-        if (flushPosition != -1)
-            throw new IllegalStateException("Cannot drain buffer in write mode");
-        byteBuffer.position(0);
-        byteBuffer.limit(0);
     }
 
     @Override

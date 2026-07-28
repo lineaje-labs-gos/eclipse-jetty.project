@@ -16,7 +16,6 @@ package org.eclipse.jetty.util.internal;
 import java.io.IOException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -399,45 +398,33 @@ public class AccumulatingReadBuffer implements ReadableBuffer
     }
 
     @Override
-    public void drain()
-    {
-        readableBuffers.forEach(Retainable::release);
-        readableBuffers.clear();
-        originalBuffers.clear();
-        originalBufferPositions.clear();
-    }
-
-    @Override
     public WritableBuffer toWritable()
     {
         throw new IllegalStateException("Read-only instance");
     }
 
     @Override
-    public String asString(Charset charset)
-    {
-        // TODO
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public long writeTo(Target target) throws IOException
     {
-        if (target instanceof GatheringTarget gatheringTarget)
-        {
-            long totalRemainingBefore = remaining();
-            List<ByteBuffer> buffers = new ArrayList<>();
-            toByteBuffers(buffers);
-            gatheringTarget.write(buffers.toArray(new ByteBuffer[0]));
-            long totalWritten = totalRemainingBefore - remaining();
-            position += totalWritten;
-            consumeOriginalBuffers(totalWritten);
-            return totalWritten;
-        }
-
         long totalWritten = 0L;
         for (int i = 0; i < readableBuffers.size(); i++)
         {
+            if (target instanceof GatheringTarget gatheringTarget)
+            {
+                long totalRemainingBefore = remaining();
+                List<ByteBuffer> buffers = gatherBuffers(i);
+                int gathered = buffers.size();
+                if (gathered > 1)
+                {
+                    i += gathered - 1;
+                    gatheringTarget.write(buffers.toArray(new ByteBuffer[0]));
+                    long written = totalRemainingBefore - remaining();
+                    position += written;
+                    totalWritten += written;
+                    continue;
+                }
+            }
+
             ReadableBuffer readableBuffer = readableBuffers.get(i);
             long remainingBefore = readableBuffer.remaining();
             if (remainingBefore == 0L)
@@ -457,17 +444,25 @@ public class AccumulatingReadBuffer implements ReadableBuffer
         return totalWritten;
     }
 
-    private void toByteBuffers(List<ByteBuffer> result)
+    private List<ByteBuffer> gatherBuffers(int index)
     {
-        for (ReadableBuffer readableBuffer : readableBuffers)
+        List<ByteBuffer> buffers = null;
+        for (int i = index; i < readableBuffers.size(); i++)
         {
-            if (readableBuffer instanceof AccumulatingReadBuffer accumulatingReadBuffer)
-                accumulatingReadBuffer.toByteBuffers(result);
+            ReadableBuffer readableBuffer = readableBuffers.get(i);
             if (readableBuffer instanceof FixedSizeBuffer fixedSizeBuffer)
-                result.add(fixedSizeBuffer.getByteBuffer());
+            {
+                ByteBuffer buffer = fixedSizeBuffer.getByteBuffer();
+                if (buffers == null)
+                    buffers = new ArrayList<>();
+                buffers.add(buffer);
+            }
             else
-                throw new IllegalStateException("Unsupported ReadableBuffer type: " + readableBuffer.getClass().getName());
+            {
+                break;
+            }
         }
+        return buffers == null ? List.of() : buffers;
     }
 
     // Retainable
