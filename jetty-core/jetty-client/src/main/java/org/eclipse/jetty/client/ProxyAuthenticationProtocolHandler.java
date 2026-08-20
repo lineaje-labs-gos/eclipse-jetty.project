@@ -17,6 +17,7 @@ import java.net.URI;
 
 import org.eclipse.jetty.client.transport.HttpDestination;
 import org.eclipse.jetty.http.HttpHeader;
+import org.eclipse.jetty.http.HttpMethod;
 import org.eclipse.jetty.http.HttpStatus;
 
 /**
@@ -49,7 +50,7 @@ public class ProxyAuthenticationProtocolHandler extends AuthenticationProtocolHa
     @Override
     public boolean accept(Request request, Response response)
     {
-        return response.getStatus() == HttpStatus.PROXY_AUTHENTICATION_REQUIRED_407;
+        return HttpMethod.CONNECT.is(request.getMethod()) && response.getStatus() == HttpStatus.PROXY_AUTHENTICATION_REQUIRED_407;
     }
 
     @Override
